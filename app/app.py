@@ -1,0 +1,434 @@
+import sys
+from pathlib import Path
+import requests
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+ROOT = Path(__file__).resolve().parents[1]
+
+sys.path.append(
+    str(ROOT)
+)
+
+from services.campaign_service import load_customers
+from services.api_client import (
+    check_health,
+    predict_customer,
+    get_model_info,
+    optimize_campaign_api,
+    get_drift_status,
+    get_prediction_monitoring,
+    get_production_performance,
+    API_URL
+)
+
+st.set_page_config(
+    page_title="Campaign Intelligence",
+    page_icon="📊",
+    layout="wide"
+)
+
+# --------------------------------------------------
+# TITLE
+# --------------------------------------------------
+
+st.title(
+    "Campaign Intelligence Platform"
+)
+
+st.caption(
+    "AI-powered customer targeting and campaign optimization"
+)
+
+
+# --------------------------------------------------
+# LOAD DATA
+# --------------------------------------------------
+
+@st.cache_data
+def get_data():
+
+    return load_customers()
+
+customers = get_data()
+
+
+# --------------------------------------------------
+# SIDEBAR
+# --------------------------------------------------
+
+st.sidebar.header(
+    "API Status"
+)
+
+try:
+
+    health = check_health()
+
+    if health["model_loaded"]:
+        st.sidebar.success(
+            "ML API: Online"
+        )
+    else:
+        st.sidebar.warning(
+            "ML API: Model unavailable"
+        )
+
+except Exception:
+
+    st.sidebar.error(
+        "ML API: Offline"
+    )
+
+try:
+    model_info = get_model_info()
+
+    st.sidebar.caption(
+        f"Model: {model_info['model_type']}"
+    )
+
+    st.sidebar.caption(
+        f"Version: {model_info['model_version']}"
+    )
+except Exception:
+    pass
+
+st.sidebar.divider()
+
+st.sidebar.header(
+    "Campaign Settings"
+)
+
+budget = st.sidebar.number_input(
+    "Campaign Budget",
+    min_value=1000.0,
+    value=100000.0,
+    step=5000.0
+)
+
+contact_cost = st.sidebar.number_input(
+    "Cost per Contact",
+    min_value=0.0,
+    value=20.0,
+    step=5.0
+)
+
+conversion_value = st.sidebar.number_input(
+    "Value per Conversion",
+    min_value=1.0,
+    value=1000.0,
+    step=100.0
+)
+
+strategy = st.sidebar.selectbox(
+    "Targeting Strategy",
+    [
+        "Highest Conversion Probability",
+        "Highest Expected Profit",
+        "Fatigue-Aware Targeting"
+    ]
+)
+
+max_contacts = st.sidebar.number_input(
+    "Maximum Customers",
+    min_value=1,
+    value=5000,
+    step=500
+)
+
+
+# --------------------------------------------------
+# OPTIMIZATION
+# --------------------------------------------------
+
+try:
+    campaign_results = optimize_campaign_api(
+        budget,
+        contact_cost,
+        conversion_value,
+        strategy,
+        max_contacts
+    )
+    
+    expected_conversions = campaign_results.get("expected_conversions", 0)
+    expected_revenue = campaign_results.get("expected_revenue", 0)
+    campaign_cost = campaign_results.get("campaign_cost", 0)
+    expected_profit = campaign_results.get("expected_profit", 0)
+    customers_targeted = campaign_results.get("customers_targeted", 0)
+    
+    roi = (
+        expected_profit / campaign_cost
+        if campaign_cost > 0
+        else 0
+    )
+except Exception as e:
+    st.error(f"Failed to optimize campaign: {e}")
+    expected_conversions = 0
+    expected_revenue = 0
+    campaign_cost = 0
+    expected_profit = 0
+    customers_targeted = 0
+    roi = 0
+
+
+# --------------------------------------------------
+# METRICS
+# --------------------------------------------------
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric(
+    "Customers Targeted",
+    f"{customers_targeted:,}"
+)
+
+col2.metric(
+    "Expected Conversions",
+    f"{expected_conversions:.1f}"
+)
+
+col3.metric(
+    "Expected Profit",
+    f"₹{expected_profit:,.0f}"
+)
+
+col4.metric(
+    "Expected ROI",
+    f"{roi:.2f}x"
+)
+
+st.divider()
+
+# --------------------------------------------------
+# MODEL HEALTH
+# --------------------------------------------------
+
+st.header(
+    "Model Health"
+)
+
+try:
+    drift = get_drift_status()
+    
+    if (
+        drift["numerical_features_with_drift"]
+        == 0
+        and
+        drift["categorical_features_with_drift"]
+        == 0
+    ):
+        st.success(
+            "No significant feature drift detected."
+        )
+    else:
+        st.warning(
+            "Feature drift detected. "
+            "Model review recommended."
+        )
+
+    m1, m2 = st.columns(2)
+    
+    m1.metric(
+        "Numerical Drift",
+        drift[
+            "numerical_features_with_drift"
+        ]
+    )
+    
+    m2.metric(
+        "Categorical Drift",
+        drift[
+            "categorical_features_with_drift"
+        ]
+    )
+
+    try:
+        perf = get_production_performance()
+        if perf.get("status") == "evaluated":
+            p1, p2, p3 = st.columns(3)
+            p1.metric("Production PR-AUC", f"{perf['pr_auc']:.2f}")
+            p2.metric("Production ROC-AUC", f"{perf['roc_auc']:.2f}")
+            p3.metric("Brier Score", f"{perf['brier_score']:.2f}")
+        elif perf.get("status") == "insufficient_data":
+            st.info(f"Collecting outcomes for evaluation... ({perf.get('matched_records', 0)} matches)")
+    except Exception as e:
+        pass
+except Exception as e:
+    st.error(f"Failed to load drift status: {e}")
+
+
+# --------------------------------------------------
+# PREDICTION MONITORING
+# --------------------------------------------------
+st.divider()
+
+st.subheader(
+    "Prediction Monitoring"
+)
+
+try:
+    prediction_health = (
+        get_prediction_monitoring()
+    )
+
+    m1, m2, m3 = st.columns(3)
+
+    m1.metric(
+        "Predictions Logged",
+        prediction_health["count"]
+    )
+
+    m2.metric(
+        "Mean Probability",
+        (
+            f'{prediction_health["mean_probability"]:.1%}'
+            if prediction_health["mean_probability"]
+            is not None
+            else "N/A"
+        )
+    )
+
+    m3.metric(
+        "High-Probability Rate",
+        (
+            f'{prediction_health["high_probability_rate"]:.1%}'
+            if prediction_health["high_probability_rate"]
+            is not None
+            else "N/A"
+        )
+    )
+
+    try:
+        prediction_log = pd.read_csv(
+            ROOT / "data" / "monitoring" / "predictions.csv"
+        )
+        if not prediction_log.empty:
+            fig, ax = plt.subplots(
+                figsize=(8, 4)
+            )
+
+            ax.hist(
+                prediction_log[
+                    "conversion_probability"
+                ],
+                bins=20
+            )
+
+            ax.set_xlabel(
+                "Conversion probability"
+            )
+
+            ax.set_ylabel(
+                "Predictions"
+            )
+
+            ax.set_title(
+                "Production Prediction Distribution"
+            )
+
+            st.pyplot(fig)
+    except Exception:
+        pass
+
+except Exception as e:
+    st.error(f"Failed to load prediction monitoring: {e}")
+
+try:
+    alerts = requests.get(
+        f"{API_URL}/monitoring/alerts"
+    ).json()
+
+    if alerts["status"] == "healthy":
+        st.success(
+            "Model monitoring checks are healthy."
+        )
+    else:
+        for alert in alerts["alerts"]:
+            st.warning(alert)
+except Exception as e:
+    st.error(f"Failed to load alerts: {e}")
+
+
+# --------------------------------------------------
+# CUSTOMER EXPLORER
+# --------------------------------------------------
+
+st.divider()
+
+st.subheader(
+    "Customer Explorer"
+)
+
+customer_index = st.selectbox(
+    "Select Customer",
+    customers.index
+)
+
+customer = customers.loc[customer_index]
+
+customer_payload = (
+    customer
+    .drop(
+        labels=[
+            "y",
+            "conversion_probability"
+        ],
+        errors="ignore"
+    )
+    .replace({np.nan: None})
+    .to_dict()
+)
+
+customer_payload["customer_id"] = str(customer_index)
+
+try:
+    prediction = predict_customer(
+        customer_payload
+    )
+
+    probability = prediction[
+        "conversion_probability"
+    ]
+    
+    st.metric(
+        "Predicted Conversion Probability",
+        f"{probability:.1%}"
+    )
+
+    if probability >= 0.70:
+        recommendation = "High predicted response. Consider prioritizing this customer."
+    elif probability >= 0.40:
+        recommendation = "Moderate predicted response. Consider contacting if campaign capacity allows."
+    else:
+        recommendation = "Low predicted response. Consider deprioritizing this customer."
+
+    st.info(recommendation)
+
+except Exception as e:
+    st.error(f"Failed to get prediction from API: {e}")
+
+
+st.write(
+    "Customer information"
+)
+
+customer_info = (
+    customer
+    .drop(
+        labels=[
+            "y",
+            "conversion_probability"
+        ],
+        errors="ignore"
+    )
+    .to_frame("Value")
+    .astype(str)
+)
+
+st.dataframe(
+    customer_info,
+    use_container_width=True
+)

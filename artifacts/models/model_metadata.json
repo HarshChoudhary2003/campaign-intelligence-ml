@@ -1,0 +1,12 @@
+{
+    "model_name": "campaign-response-model",
+    "model_version": "1.0.0",
+    "algorithm": "XGBoost",
+    "target": "y",
+    "prediction": "conversion_probability",
+    "primary_metric": "PR-AUC",
+    "validation": "5-fold stratified cross-validation",
+    "leakage_control": [
+        "duration"
+    ]
+}

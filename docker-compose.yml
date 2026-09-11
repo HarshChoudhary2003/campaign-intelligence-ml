@@ -1,0 +1,33 @@
+services:
+  api:
+    build: .
+    container_name: campaign-api
+    ports:
+      - "8000:8000"
+    command:
+      [
+        "uvicorn",
+        "app.api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000"
+      ]
+
+  dashboard:
+    build: .
+    container_name: campaign-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000
+    command:
+      [
+        "streamlit",
+        "run",
+        "app/app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501"
+      ]
+    depends_on:
+      - api
