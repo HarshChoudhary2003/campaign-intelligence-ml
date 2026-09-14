@@ -145,61 +145,90 @@ max_contacts = st.sidebar.number_input(
 # OPTIMIZATION
 # --------------------------------------------------
 
+st.header(
+    "Campaign Optimizer"
+)
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("Budget", f"₹{budget:,.0f}")
+
+with col2:
+    st.metric("Contact Cost", f"₹{contact_cost:,.0f}")
+
+with col3:
+    st.metric("Maximum Contacts", f"{max_contacts:,}")
+
+if st.button("🚀 Optimize Campaign", use_container_width=True):
+    try:
+        result = optimize_campaign_api(
+            budget,
+            contact_cost,
+            conversion_value,
+            strategy,
+            max_contacts
+        )
+        st.session_state["campaign_result"] = result
+    except Exception as e:
+        st.error(f"Failed to optimize campaign: {e}")
+
+result = st.session_state.get("campaign_result")
+
+if result:
+    st.divider()
+    st.header("Campaign Recommendation")
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Customers Targeted", result.get("customers_targeted", 0))
+    with col2:
+        st.metric("Expected Conversions", f"{result.get('expected_conversions', 0):.1f}")
+    with col3:
+        st.metric("Expected Revenue", f"₹{result.get('expected_revenue', 0):,.0f}")
+    with col4:
+        st.metric("Expected Profit", f"₹{result.get('expected_profit', 0):,.0f}")
+
+    roi = result.get("roi", 0)
+    if "expected_profit" in result and "campaign_cost" in result and result["campaign_cost"] > 0:
+        roi = result["expected_profit"] / result["campaign_cost"]
+        
+    st.metric("Expected ROI", f"{roi:.1%}")
+
+st.divider()
+
+st.header("Strategy Comparison")
+
+experiment_path = (
+    ROOT / "data" / "experiments" / "campaign_strategy_results.csv"
+)
+
 try:
-    campaign_results = optimize_campaign_api(
-        budget,
-        contact_cost,
-        conversion_value,
-        strategy,
-        max_contacts
+    experiment_df = pd.read_csv(experiment_path)
+    st.dataframe(
+        experiment_df,
+        use_container_width=True,
+        hide_index=True
     )
-    
-    expected_conversions = campaign_results.get("expected_conversions", 0)
-    expected_revenue = campaign_results.get("expected_revenue", 0)
-    campaign_cost = campaign_results.get("campaign_cost", 0)
-    expected_profit = campaign_results.get("expected_profit", 0)
-    customers_targeted = campaign_results.get("customers_targeted", 0)
-    
-    roi = (
-        expected_profit / campaign_cost
-        if campaign_cost > 0
-        else 0
+
+    chart_data = experiment_df.set_index("strategy")[["profit", "revenue"]]
+    st.bar_chart(chart_data)
+
+    best_strategy = (
+        experiment_df
+        .sort_values("profit", ascending=False)
+        .iloc[0]
     )
-except Exception as e:
-    st.error(f"Failed to optimize campaign: {e}")
-    expected_conversions = 0
-    expected_revenue = 0
-    campaign_cost = 0
-    expected_profit = 0
-    customers_targeted = 0
-    roi = 0
 
+    st.success(
+        f"Best simulated strategy: "
+        f"{best_strategy['strategy']} "
+        f"with profit of "
+        f"₹{best_strategy['profit']:,.0f}"
+    )
 
-# --------------------------------------------------
-# METRICS
-# --------------------------------------------------
-
-col1, col2, col3, col4 = st.columns(4)
-
-col1.metric(
-    "Customers Targeted",
-    f"{customers_targeted:,}"
-)
-
-col2.metric(
-    "Expected Conversions",
-    f"{expected_conversions:.1f}"
-)
-
-col3.metric(
-    "Expected Profit",
-    f"₹{expected_profit:,.0f}"
-)
-
-col4.metric(
-    "Expected ROI",
-    f"{roi:.2f}x"
-)
+except FileNotFoundError:
+    st.info("Run the campaign experiment to display strategy comparison.")
 
 st.divider()
 
