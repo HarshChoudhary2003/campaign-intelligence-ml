@@ -1,33 +1,44 @@
 services:
+
   api:
     build: .
     container_name: campaign-api
+    command: >
+      uvicorn app.api.main:app
+      --host 0.0.0.0
+      --port 8000
     ports:
       - "8000:8000"
-    command:
-      [
-        "uvicorn",
-        "app.api.main:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000"
-      ]
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   dashboard:
     build: .
     container_name: campaign-dashboard
+    command: >
+      streamlit run app/app.py
+      --server.address 0.0.0.0
+      --server.port 8501
     ports:
       - "8501:8501"
-    environment:
-      API_URL: http://api:8000
-    command:
-      [
-        "streamlit",
-        "run",
-        "app/app.py",
-        "--server.address=0.0.0.0",
-        "--server.port=8501"
-      ]
+    env_file:
+      - .env.docker
     depends_on:
       - api
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts

@@ -28,6 +28,17 @@ def predict_customer(customer):
     response.raise_for_status()
     return response.json()
 
+def predict_explain_customer(customer):
+    response = requests.post(
+        f"{API_URL}/predict/explain",
+        json={
+            "customer": customer
+        },
+        timeout=10
+    )
+    response.raise_for_status()
+    return response.json()
+
 def get_model_info():
     response = requests.get(
         f"{API_URL}/model/info",

@@ -1,0 +1,5 @@
+strategy,contacts,actual_conversions,actual_conversion_rate,expected_conversions,revenue,campaign_cost,profit,roi
+Highest Probability,250,173,0.692,191.46631,173000,5000,168000,33.6
+Expected Profit,250,173,0.692,191.46631,173000,5000,168000,33.6
+Fatigue-Aware,250,171,0.684,191.30804,171000,5000,166000,33.2
+Random,250,30,0.12,29.289398,30000,5000,25000,5.0

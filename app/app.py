@@ -17,6 +17,7 @@ from services.campaign_service import load_customers
 from services.api_client import (
     check_health,
     predict_customer,
+    predict_explain_customer,
     get_model_info,
     optimize_campaign_api,
     get_drift_status,
@@ -358,6 +359,21 @@ except Exception as e:
 
 st.divider()
 
+st.subheader("Model Intelligence")
+st.write("Top Model Drivers")
+try:
+    importance = pd.read_csv(ROOT / "data" / "experiments" / "shap_feature_importance.csv")
+    st.bar_chart(importance.set_index("feature")["mean_abs_shap"])
+    st.caption(
+        "SHAP values explain how model features "
+        "contributed to the prediction. They do not "
+        "represent causal effects."
+    )
+except Exception as e:
+    st.info("Global feature importance not available. Generate using the notebook first.")
+
+st.divider()
+
 st.subheader(
     "Customer Explorer"
 )
@@ -385,27 +401,38 @@ customer_payload = (
 customer_payload["customer_id"] = str(customer_index)
 
 try:
-    prediction = predict_customer(
+    prediction = predict_explain_customer(
         customer_payload
     )
 
     probability = prediction[
         "conversion_probability"
     ]
+    expected_value = prediction[
+        "expected_value"
+    ]
+    model_version = prediction[
+        "model_version"
+    ]
     
-    st.metric(
-        "Predicted Conversion Probability",
-        f"{probability:.1%}"
-    )
+    st.markdown("### Customer Intelligence")
+    m1, m2 = st.columns(2)
+    m1.metric("Conversion Probability", f"{probability:.1%}")
+    m2.metric("Expected Value", f"₹{expected_value:,.0f}")
+    
+    st.markdown("#### Why this customer?")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Positive factors**")
+        for factor in prediction["explanation"]["positive"]:
+            st.markdown(f"↑ {factor}")
+            
+    with c2:
+        st.markdown("**Negative factors**")
+        for factor in prediction["explanation"]["negative"]:
+            st.markdown(f"↓ {factor}")
 
-    if probability >= 0.70:
-        recommendation = "High predicted response. Consider prioritizing this customer."
-    elif probability >= 0.40:
-        recommendation = "Moderate predicted response. Consider contacting if campaign capacity allows."
-    else:
-        recommendation = "Low predicted response. Consider deprioritizing this customer."
-
-    st.info(recommendation)
+    st.caption(f"Model: {model_version}")
 
 except Exception as e:
     st.error(f"Failed to get prediction from API: {e}")
@@ -431,4 +458,11 @@ customer_info = (
 st.dataframe(
     customer_info,
     use_container_width=True
+)
+
+st.divider()
+
+st.caption(
+    "Portfolio demonstration using the UCI Bank Marketing dataset. "
+    "Not intended for production banking decisions."
 )

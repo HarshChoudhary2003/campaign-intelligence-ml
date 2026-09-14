@@ -32,7 +32,7 @@ MODEL_DIR = (
 
 MODEL_PATH = (
     MODEL_DIR
-    / "xgboost_campaign_model.joblib"
+    / "final_xgboost_model.joblib"
 )
 
 
@@ -138,6 +138,14 @@ def train():
             stratify=y
         )
     )
+
+    train_data = X_train.copy()
+    train_data["y"] = y_train
+    test_data = X_test.copy()
+    test_data["y"] = y_test
+
+    train_data.to_csv("data/processed/train.csv", index=False)
+    test_data.to_csv("data/processed/test.csv", index=False)
 
     pipeline = build_pipeline(X_train)
 

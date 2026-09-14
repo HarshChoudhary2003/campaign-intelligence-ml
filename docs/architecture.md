@@ -27,14 +27,70 @@ monitoring endpoints.
 Predictions, outcomes, drift, and production
 performance are monitored over time.
 
-## Flow
+## Diagram
 
-Data
-→ Feature Engineering
-→ Model
-→ Prediction API
-→ Decision Engine
-→ Campaign Recommendation
-→ Outcome
-→ Monitoring
-→ Model Review
+```text
+┌─────────────────────┐
+│  UCI Bank Marketing │
+│       Dataset       │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Data Processing &   │
+│ Feature Engineering │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│   ML Training       │
+│      XGBoost        │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Versioned Model     │
+│ Artifact            │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│      FastAPI        │
+│ Prediction Service  │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Decision Engine    │
+│                     │
+│ Probability         │
+│ Expected Profit     │
+│ Budget              │
+│ Capacity            │
+│ Fatigue             │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│ Streamlit Dashboard │
+└──────────┬──────────┘
+           │
+           ▼
+      Campaign
+           │
+           ▼
+      Actual Outcome
+           │
+           ▼
+┌─────────────────────┐
+│     Monitoring      │
+│                     │
+│ Drift               │
+│ Predictions         │
+│ Performance         │
+└──────────┬──────────┘
+           │
+           ▼
+    Model Review /
+    Retraining Signal
+```

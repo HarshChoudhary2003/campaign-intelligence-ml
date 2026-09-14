@@ -10,6 +10,7 @@ env/
 
 # Environment variables
 .env
+.env.docker
 
 # Jupyter
 .ipynb_checkpoints/

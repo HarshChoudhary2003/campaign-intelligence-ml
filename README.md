@@ -8,6 +8,22 @@ The project goes beyond a traditional classification model by combining **machin
 
 ---
 
+## Demo
+
+### Campaign Optimization
+
+![Campaign Dashboard](docs/screenshots/dashboard.png)
+
+### Campaign Recommendations
+
+![Campaign Results](docs/screenshots/results.png)
+
+### Model Monitoring
+
+![Model Monitoring](docs/screenshots/monitoring.png)
+
+---
+
 ## Problem
 
 A marketing team has a limited campaign budget and cannot contact every customer.
@@ -416,15 +432,156 @@ http://127.0.0.1:8501
 
 ---
 
-## Docker
+## Run with Docker
 
-Build and start the complete application:
+The application can be run as two containerized services:
+
+* FastAPI backend
+* Streamlit dashboard
+
+### Prerequisites
+
+* Docker Desktop
+* Git
+
+### Configuration
+
+Create the local environment configuration from the example file.
+
+```bash
+copy .env.example .env
+```
+
+For Docker networking, configure the dashboard API URL as:
+
+```text
+API_URL=http://api:8000
+```
+
+### Build
+
+```bash
+docker compose build
+```
+
+### Start
+
+```bash
+docker compose up
+```
+
+### Services
+
+API:
+
+```text
+http://localhost:8000
+```
+
+API documentation:
+
+```text
+http://localhost:8000/docs
+```
+
+Dashboard:
+
+```text
+http://localhost:8501
+```
+
+### Stop
+
+```bash
+docker compose down
+```
+
+### Rebuild
+
+Use this when dependencies or application code affecting the image have changed:
 
 ```bash
 docker compose up --build
 ```
 
-This starts the API and dashboard services.
+---
+
+## Deployment
+
+The application is containerized into separate backend and dashboard services.
+
+```text
+User
+  ↓
+Streamlit Dashboard
+  ↓
+FastAPI
+  ↓
+ML Model
+  ↓
+Prediction / Optimization
+  ↓
+Monitoring
+```
+
+The same Docker configuration can be used for local development and cloud deployment by changing environment variables.
+
+### Production configuration
+
+The dashboard requires an API URL:
+
+```text
+API_URL=https://<api-domain>
+```
+
+The API service loads the versioned model artifact and exposes prediction, optimization, and monitoring endpoints.
+
+### Deployment requirements
+
+The deployment environment must provide:
+
+* Python/Docker runtime
+* Model artifact
+* Processed feature configuration
+* Environment variables
+* Persistent storage for monitoring data if production logging is enabled
+
+For a production banking application, monitoring data should be stored in a managed database or object store rather than local container storage.
+
+The portfolio deployment is intended as a demonstration of the architecture and should not be treated as a production banking system.
+
+---
+
+## Campaign Strategy Experiment
+
+The system compares multiple targeting policies under the same campaign constraints.
+
+Strategies evaluated:
+
+* Random targeting
+* Highest conversion probability
+* Expected-profit targeting
+* Fatigue-aware targeting
+
+All strategies are evaluated on the same held-out dataset using the same campaign budget and contact cost.
+
+### Evaluation Metrics
+
+* Number of contacts
+* Actual conversions
+* Conversion rate
+* Revenue
+* Campaign cost
+* Profit
+* ROI
+
+### Why This Experiment Matters
+
+A high-probability customer is not necessarily the highest-value customer.
+
+The experiment therefore evaluates the complete decision problem rather than measuring only the ML model's predictive performance.
+
+Results are generated directly from the held-out evaluation data and are not manually specified.
 
 ---
 

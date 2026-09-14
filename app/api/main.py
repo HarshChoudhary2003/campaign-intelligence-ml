@@ -25,6 +25,8 @@ from src.monitoring.prediction_monitor import prediction_summary
 from src.monitoring.alerts import check_prediction_health
 from src.monitoring.outcome_logger import log_outcome
 from src.monitoring.performance import evaluate_production_model
+import shap
+from src.explainability.shap_explainer import top_prediction_reasons
 
 logger = get_logger(__name__)
 
@@ -41,6 +43,11 @@ app = FastAPI(
 model = load_model()
 prediction_service = PredictionService(model)
 customers = load_customers()
+
+xgb_model = model.named_steps['model']
+preprocessor = model.named_steps['preprocessor']
+explainer = shap.TreeExplainer(xgb_model)
+feature_names = preprocessor.get_feature_names_out()
 
 
 MODEL_METADATA_PATH = (
@@ -72,6 +79,16 @@ class PredictionResponse(BaseModel):
     conversion_probability: float
     expected_value: float
     model_version: str
+
+class ExplanationFactors(BaseModel):
+    positive: list[str]
+    negative: list[str]
+
+class ExplanationResponse(BaseModel):
+    conversion_probability: float
+    expected_value: float
+    model_version: str
+    explanation: ExplanationFactors
 
 
 class CampaignRequest(BaseModel):
@@ -167,6 +184,46 @@ def predict(request: PredictionRequest):
 
     except Exception as error:
         logger.exception("Prediction failed")
+        raise HTTPException(
+            status_code=400,
+            detail=str(error)
+        )
+
+@app.post(
+    "/predict/explain",
+    response_model=ExplanationResponse
+)
+def predict_explain(request: PredictionRequest):
+    logger.info("Explain prediction request received")
+    
+    try:
+        probability = prediction_service.predict(request.customer)
+        
+        conversion_value = 1000.0
+        contact_cost = 20.0
+        expected_value = (probability * conversion_value - contact_cost)
+        
+        df_cust = pd.DataFrame([request.customer])
+        X_transformed = preprocessor.transform(df_cust)
+        shap_values = explainer.shap_values(X_transformed)
+        
+        pos_series, neg_series = top_prediction_reasons(
+            shap_values[0],
+            feature_names,
+            top_n=5
+        )
+        
+        return {
+            "conversion_probability": float(probability),
+            "expected_value": float(expected_value),
+            "model_version": metadata["model_version"],
+            "explanation": {
+                "positive": pos_series.index.tolist(),
+                "negative": neg_series.index.tolist()
+            }
+        }
+    except Exception as error:
+        logger.exception("Explanation failed")
         raise HTTPException(
             status_code=400,
             detail=str(error)

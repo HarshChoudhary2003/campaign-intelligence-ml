@@ -13,3 +13,4 @@ matplotlib
 scipy
 pytest
 evidently
+shap
