@@ -1,51 +1,43 @@
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parents[2]
-
-LOG_PATH = (
-    ROOT
-    / "data"
-    / "monitoring"
-    / "predictions.csv"
+LOG_PATH = Path(
+    "data/monitoring/predictions.csv"
 )
 
 
 def log_prediction(
-    customer_id,
-    probability,
-    expected_value,
-    model_version
+    prediction_id: str,
+    campaign_id: str,
+    customer_id: str,
+    model_version: str,
+    conversion_probability: float,
+    expected_value: float,
 ):
+
+    record = pd.DataFrame([
+        {
+            "prediction_id": prediction_id,
+            "timestamp": datetime.now(
+                timezone.utc
+            ).isoformat(),
+            "campaign_id": campaign_id,
+            "customer_id": customer_id,
+            "model_version": model_version,
+            "conversion_probability":
+                conversion_probability,
+            "expected_value":
+                expected_value,
+        }
+    ])
 
     LOG_PATH.parent.mkdir(
         parents=True,
         exist_ok=True
     )
-
-    record = pd.DataFrame([
-        {
-            "timestamp": datetime.now(
-                timezone.utc
-            ).isoformat(),
-
-            "customer_id": str(
-                customer_id
-            ),
-
-            "model_version":
-                model_version,
-
-            "conversion_probability":
-                float(probability),
-
-            "expected_value":
-                float(expected_value)
-        }
-    ])
 
     if LOG_PATH.exists():
 

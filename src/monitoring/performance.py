@@ -1,40 +1,37 @@
 from pathlib import Path
 
 import pandas as pd
+
 from sklearn.metrics import (
     roc_auc_score,
     average_precision_score,
-    brier_score_loss
+    brier_score_loss,
 )
 
 
-ROOT = Path(__file__).resolve().parents[2]
-
-PREDICTION_PATH = (
-    ROOT
-    / "data"
-    / "monitoring"
-    / "predictions.csv"
+PREDICTION_PATH = Path(
+    "data/monitoring/predictions.csv"
 )
 
-OUTCOME_PATH = (
-    ROOT
-    / "data"
-    / "monitoring"
-    / "outcomes.csv"
+OUTCOME_PATH = Path(
+    "data/monitoring/outcomes.csv"
 )
 
 
-def evaluate_production_model():
+MIN_RECORDS = 10
 
-    if not PREDICTION_PATH.exists():
+
+def calculate_performance():
+
+    if not (
+        PREDICTION_PATH.exists()
+        and OUTCOME_PATH.exists()
+    ):
+
         return {
-            "status": "no_predictions"
-        }
-
-    if not OUTCOME_PATH.exists():
-        return {
-            "status": "no_outcomes"
+            "status": "insufficient_data",
+            "message":
+                "Prediction or outcome data unavailable."
         }
 
     predictions = pd.read_csv(
@@ -48,18 +45,20 @@ def evaluate_production_model():
     merged = predictions.merge(
         outcomes,
         on=[
-            "customer_id",
-            "model_version"
+            "campaign_id",
+            "customer_id"
         ],
         how="inner"
     )
 
-    if len(merged) < 10:
+    if len(merged) < MIN_RECORDS:
 
         return {
             "status": "insufficient_data",
             "matched_records":
-                int(len(merged))
+                len(merged),
+            "required_records":
+                MIN_RECORDS
         }
 
     y_true = merged[
@@ -70,33 +69,27 @@ def evaluate_production_model():
         "conversion_probability"
     ]
 
-    return {
-        "status": "evaluated",
-
+    result = {
+        "status": "available",
         "matched_records":
-            int(len(merged)),
-
+            len(merged),
         "roc_auc":
-            float(
-                roc_auc_score(
-                    y_true,
-                    y_prob
-                )
+            roc_auc_score(
+                y_true,
+                y_prob
             ),
-
         "pr_auc":
-            float(
-                average_precision_score(
-                    y_true,
-                    y_prob
-                )
+            average_precision_score(
+                y_true,
+                y_prob
             ),
-
         "brier_score":
-            float(
-                brier_score_loss(
-                    y_true,
-                    y_prob
-                )
-            )
+            brier_score_loss(
+                y_true,
+                y_prob
+            ),
+        "actual_conversion_rate":
+            y_true.mean()
     }
+
+    return result

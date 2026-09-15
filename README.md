@@ -2,486 +2,460 @@
 
 ### ML-Powered Customer Targeting & Campaign Optimization
 
-An end-to-end machine learning decision system that predicts customer conversion probability and uses campaign economics and operational constraints to prioritize customers for marketing campaigns.
+**Predict → Optimize → Explain → Monitor**
 
-The project goes beyond a traditional classification model by combining **machine learning, decision optimization, explainability, API engineering, and MLOps monitoring**.
+Campaign Intelligence is an end-to-end machine learning system that predicts customer conversion probability and prioritizes campaign targets under real-world business constraints such as budget, contact cost, expected conversion value, and campaign fatigue.
 
----
-
-## Demo
-
-### Campaign Optimization
-
-![Campaign Dashboard](docs/screenshots/dashboard.png)
-
-### Campaign Recommendations
-
-![Campaign Results](docs/screenshots/results.png)
-
-### Model Monitoring
-
-![Model Monitoring](docs/screenshots/monitoring.png)
+The project goes beyond a traditional classification model by combining **machine learning, decision optimization, explainability, API deployment, monitoring, and automated testing**.
 
 ---
 
-## Problem
+## 🚀 What It Does
 
-A marketing team has a limited campaign budget and cannot contact every customer.
+The system answers four business questions:
 
-The goal is not simply:
+1. **Who is likely to convert?**
+2. **Who should the business contact first?**
+3. **Why did the model prioritize a customer?**
+4. **Is the model still performing reliably after deployment?**
 
-> Who is likely to subscribe?
-
-The practical question is:
-
-> Which customers should we prioritize given their predicted conversion probability, campaign economics, budget, capacity, and contact history?
-
-This project addresses that problem with an end-to-end ML decision system.
-
----
-
-## Solution
-
-The system performs five major tasks:
-
-1. Predicts customer conversion probability.
-2. Estimates expected campaign revenue and profit.
-3. Ranks customers using configurable targeting strategies.
-4. Applies operational constraints such as budget and contact capacity.
-5. Monitors predictions, feature drift, and production performance.
-
----
-
-## System Architecture
+### System Flow
 
 ```text
-                    ┌──────────────────┐
-                    │   Bank Marketing │
-                    │      Dataset     │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │ Data Preparation │
-                    │ & Feature Engine │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │   ML Training    │
-                    │     XGBoost      │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │ Conversion Model │
-                    └────────┬─────────┘
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │     FastAPI      │
-                    └────────┬─────────┘
-                             │
-              ┌──────────────┴──────────────┐
-              ▼                             ▼
-       Prediction Service             Decision Engine
-              │                             │
-              └──────────────┬──────────────┘
-                             ▼
-                    Campaign Recommendation
-                             │
-                             ▼
-                    Actual Customer Outcome
-                             │
-                             ▼
-                    ┌──────────────────┐
-                    │    Monitoring    │
-                    ├──────────────────┤
-                    │ Data Drift       │
-                    │ Prediction Drift │
-                    │ Performance      │
-                    │ Retraining Signal│
-                    └──────────────────┘
-```
-
----
-
-## Dataset
-
-The project uses the **UCI Bank Marketing Dataset**, a public research dataset containing customer and campaign information.
-
-The target variable is:
-
-```text
-y
-```
-
-where the outcome represents whether the customer subscribed to the offered banking product.
-
-The dataset is used for research and portfolio development and does not represent a live production banking environment.
-
----
-
-## Machine Learning
-
-The project treats the task as binary classification.
-
-The model predicts:
-
-```text
-P(customer subscribes)
-```
-
-The training pipeline includes:
-
-* Data cleaning
-* Feature engineering
-* Categorical encoding
-* Cross-validation
-* Model comparison
-* XGBoost training
-* Probability prediction
-* Calibration analysis
-* Model evaluation
-
-### Important leakage prevention
-
-The `duration` feature is excluded from the pre-contact prediction system because it describes the duration of a campaign interaction that occurs after contact.
-
-Using it for pre-contact targeting would introduce target leakage.
-
----
-
-## Decision Engine
-
-The model probability is not treated as the final business decision.
-
-The decision layer considers:
-
-```text
+Bank Marketing Data
+        ↓
+Data Processing
+        ↓
+Feature Engineering
+        ↓
+XGBoost Model
+        ↓
 Conversion Probability
-        +
-Conversion Value
-        -
-Contact Cost
-        +
-Campaign Constraints
-        +
-Contact Fatigue
+        ↓
+Decision Engine
+        ↓
+Campaign Optimization
+        ↓
+Customer Recommendations
+        ↓
+Prediction + Outcome Logging
+        ↓
+Monitoring
+        ↓
+Model Review / Retraining Signal
 ```
 
-The system supports three strategies:
+---
 
-### 1. Highest Conversion Probability
+## 🎯 Business Problem
 
-Prioritize customers with the highest predicted probability.
+Marketing teams often have limited campaign capacity.
 
-### 2. Highest Expected Profit
+For example:
 
-Prioritize customers based on expected financial value.
+* Budget = ₹5,000
+* Contact cost = ₹20
+* Maximum contacts = 250
+* Conversion value = ₹1,000
+
+A business cannot contact every customer.
+
+Instead of treating every customer equally, Campaign Intelligence estimates the probability of conversion and uses business constraints to prioritize the customers with the highest expected value.
+
+---
+
+## 💡 Key Idea
+
+A prediction alone is not enough.
+
+The system converts:
+
+```text
+Probability
+     ↓
+Expected Revenue
+     ↓
+Expected Profit
+     ↓
+Campaign Decision
+```
+
+### Expected Revenue
 
 ```text
 Expected Revenue =
 Conversion Probability × Conversion Value
 ```
 
+### Expected Profit
+
 ```text
 Expected Profit =
 Expected Revenue − Contact Cost
 ```
 
+The decision engine then ranks customers according to the selected business strategy.
+
+---
+
+## 🧠 Targeting Strategies
+
+The system supports:
+
+### 1. Highest Conversion Probability
+
+Prioritizes customers with the highest predicted probability of conversion.
+
+### 2. Highest Expected Profit
+
+Ranks customers using estimated financial value:
+
+```text
+Expected Profit =
+P(conversion) × Conversion Value − Contact Cost
+```
+
 ### 3. Fatigue-Aware Targeting
 
-Adjust prioritization based on campaign contact frequency.
+Adjusts the ranking using campaign-contact history as a configurable business policy.
 
-This is a decision-policy adjustment rather than a causal estimate.
+This is a **policy assumption**, not a causal claim.
 
 ---
 
-## API
+## 🤖 Machine Learning
 
-FastAPI exposes the model and decision system through endpoints such as:
+### Model
+
+**XGBoost**
+
+XGBoost was selected because the problem is structured/tabular data with nonlinear relationships and mixed customer characteristics.
+
+### Target
+
+Binary classification:
 
 ```text
-GET  /health
-GET  /ready
-GET  /model/info
+y = 1 → customer subscribed
+y = 0 → customer did not subscribe
+```
 
-POST /predict
-POST /campaign/optimize
-POST /outcomes
+### Probability Output
 
-GET  /monitoring/drift
-GET  /monitoring/predictions
-GET  /monitoring/performance
-GET  /monitoring/alerts
+The model produces:
+
+```text
+P(customer converts)
+```
+
+rather than only a binary prediction.
+
+This allows the decision engine to rank customers and calculate expected business value.
+
+---
+
+## 🔍 Leakage Prevention
+
+A major modeling decision was excluding `duration` from pre-contact targeting.
+
+`duration` represents the length of the interaction and is only known after the customer has already been contacted.
+
+Using it to decide **who to contact** would introduce future information into the prediction.
+
+Therefore:
+
+```text
+duration → excluded
+```
+
+This makes the prediction setup more representative of a real pre-contact campaign decision.
+
+---
+
+## 📊 Model Evaluation
+
+The model is evaluated on a held-out test set.
+
+Metrics include:
+
+| Metric      | Result |
+| ----------- | -----: |
+| ROC-AUC     |    TBD |
+| PR-AUC      |    TBD |
+| Brier Score |    TBD |
+| Precision   |    TBD |
+| Recall      |    TBD |
+
+### Why PR-AUC?
+
+The business is particularly interested in identifying customers who actually convert.
+
+PR-AUC therefore provides a useful view of positive-class performance alongside ROC-AUC.
+
+### Why Brier Score?
+
+The system uses predicted probabilities for business decisions.
+
+Brier Score helps evaluate the quality of those probability estimates.
+
+---
+
+## 💰 Business Experiment
+
+The model is evaluated as a decision system, not only as a classifier.
+
+Strategies are compared under the same simulated campaign constraints:
+
+| Strategy            | Contacts | Conversions | Revenue | Cost | Profit | ROI |
+| ------------------- | -------: | ----------: | ------: | ---: | -----: | --: |
+| Random              |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
+| Highest Probability |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
+| Expected Profit     |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
+| Fatigue-Aware       |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
+
+These results will be populated from the actual held-out experiment.
+
+The experiment is a **historical simulation**, not a randomized controlled campaign.
+
+---
+
+## 🔎 Explainability
+
+The system uses **SHAP** to explain individual predictions.
+
+For a selected customer, the system can show:
+
+```text
+Conversion Probability
+        ↓
+Expected Value
+        ↓
+Positive Contributors
+        ↓
+Negative Contributors
+```
+
+SHAP values explain how model features contributed to a prediction.
+
+They **do not establish causality**.
+
+---
+
+## ⚙️ System Architecture
+
+```text
+                    ┌───────────────────┐
+                    │   Streamlit UI    │
+                    │      :8501        │
+                    └─────────┬─────────┘
+                              │
+                              ▼
+                    ┌───────────────────┐
+                    │     FastAPI       │
+                    │      :8000        │
+                    └─────────┬─────────┘
+                              │
+               ┌──────────────┼──────────────┐
+               ▼              ▼              ▼
+        ┌────────────┐ ┌────────────┐ ┌────────────┐
+        │ XGBoost    │ │ Decision   │ │   SHAP     │
+        │ Model      │ │ Engine     │ │ Explainer  │
+        └──────┬─────┘ └──────┬─────┘ └────────────┘
+               │              │
+               └──────┬───────┘
+                      ▼
+              ┌───────────────┐
+              │  Monitoring   │
+              ├───────────────┤
+              │ Predictions   │
+              │ Outcomes      │
+              │ Drift         │
+              │ Performance   │
+              │ Alerts        │
+              └───────────────┘
 ```
 
 ---
 
-## Dashboard
+## 🛠️ Technology Stack
 
-The Streamlit dashboard provides:
-
-* Campaign simulation
-* Budget controls
-* Contact-cost controls
-* Conversion-value controls
-* Targeting strategy selection
-* Customer recommendations
-* Expected revenue
-* Expected profit
-* ROI
-* Prediction monitoring
-* Model health
-* Drift monitoring
+| Area             | Technology                            |
+| ---------------- | ------------------------------------- |
+| Language         | Python                                |
+| Data Processing  | Pandas, NumPy                         |
+| Machine Learning | XGBoost, Scikit-learn                 |
+| Explainability   | SHAP                                  |
+| API              | FastAPI                               |
+| Dashboard        | Streamlit                             |
+| Testing          | Pytest                                |
+| Monitoring       | Custom drift & performance monitoring |
+| Serialization    | Joblib                                |
+| Containerization | Docker                                |
+| Orchestration    | Docker Compose                        |
 
 ---
 
-## MLOps
-
-The system includes a basic production feedback loop.
+## 📁 Project Structure
 
 ```text
-Prediction
-    ↓
-Prediction Log
-    ↓
-Customer Outcome
-    ↓
-Performance Evaluation
-    ↓
-Model Monitoring
-    ↓
-Retraining Review
-```
-
-The system tracks:
-
-* Model version
-* Prediction probability
-* Prediction timestamp
-* Customer identifier
-* Actual outcome
-* Feature drift
-* Prediction distribution
-* Production performance
-
----
-
-## Model Monitoring
-
-Feature drift is monitored by comparing reference and current data distributions.
-
-Numerical features use statistical distribution comparison.
-
-Categorical features are monitored through changes in category distributions.
-
-The monitoring system can flag:
-
-```text
-Feature Drift
-Prediction Drift
-Performance Degradation
-```
-
-Drift does not automatically mean that the model is incorrect. It signals that the data-generating environment should be investigated.
-
----
-
-## Causal Limitation
-
-The Bank Marketing dataset is observational and does not provide randomized treatment assignment.
-
-Therefore, this project does **not** claim to estimate causal uplift or the incremental effect of contacting a customer.
-
-The targeting system should be understood as a predictive and decision-optimization system.
-
-A true uplift model would require suitable treatment/control data or a randomized campaign experiment.
-
----
-
-## Technology Stack
-
-### Python
-
-* Pandas
-* NumPy
-* Scikit-learn
-* XGBoost
-* SciPy
-* Joblib
-
-### Application
-
-* FastAPI
-* Streamlit
-* Pydantic
-
-### MLOps
-
-* Evidently
-* Prediction logging
-* Outcome logging
-* Drift monitoring
-
-### Testing
-
-* Pytest
-
-### Deployment
-
-* Docker
-* Docker Compose
-
----
-
-## Project Structure
-
-```text
-campaign-intelligence-ml/
+campaign-intelligence/
 │
 ├── app/
+│   ├── app.py
 │   ├── api/
-│   ├── components/
 │   ├── services/
-│   └── app.py
+│   └── components/
 │
 ├── src/
 │   ├── models/
 │   ├── monitoring/
+│   ├── explainability/
+│   ├── experiments/
+│   ├── evaluation/
 │   └── utils/
 │
 ├── data/
 │   ├── raw/
 │   ├── processed/
-│   └── monitoring/
+│   ├── monitoring/
+│   └── experiments/
 │
 ├── artifacts/
 │   └── models/
 │
-├── notebooks/
-│
 ├── tests/
 │
 ├── docs/
+│   ├── architecture.md
+│   ├── model_card.md
+│   └── technical_decisions.md
 │
+├── notebooks/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 ├── .env.example
-├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Running Locally
+## 🔌 API
 
-Clone the repository and create a virtual environment.
+### Health
 
-```bash
-python -m venv .venv
+```http
+GET /health
 ```
 
-Activate the environment.
+### Readiness
 
-Windows:
-
-```powershell
-.venv\Scripts\activate
+```http
+GET /ready
 ```
 
-Install dependencies:
+### Model Information
 
-```bash
-pip install -r requirements.txt
+```http
+GET /model/info
 ```
 
-Create the environment file:
+### Prediction
 
-```bash
-copy .env.example .env
+```http
+POST /predict
 ```
 
-Start the API:
+### Campaign Optimization
 
-```bash
-uvicorn app.api.main:app --reload
+```http
+POST /campaign/optimize
 ```
 
-Start Streamlit in another terminal:
+### Prediction Explanation
 
-```bash
-streamlit run app/app.py
+```http
+POST /predict/explain
 ```
 
-The API will be available at:
+### Monitoring
+
+```http
+GET /monitoring/performance
+GET /monitoring/predictions
+GET /monitoring/alerts
+```
+
+Interactive API documentation is available through FastAPI Swagger:
 
 ```text
-http://127.0.0.1:8000
-```
-
-The interactive API documentation is available through the FastAPI documentation interface.
-
-The dashboard runs on:
-
-```text
-http://127.0.0.1:8501
+http://localhost:8000/docs
 ```
 
 ---
 
-## Run with Docker
+## 📈 Monitoring
 
-The application can be run as two containerized services:
+The system tracks:
 
-* FastAPI backend
-* Streamlit dashboard
+### Data
 
-### Prerequisites
+* Feature distributions
+* Numerical drift
+* Categorical distribution changes
 
-* Docker Desktop
-* Git
+### Predictions
 
-### Configuration
+* Prediction volume
+* Conversion probabilities
+* Expected values
+* Model version
 
-Create the local environment configuration from the example file.
+### Outcomes
+
+* Actual campaign outcomes
+* Prediction/outcome matching
+
+### Model Performance
+
+* ROC-AUC
+* PR-AUC
+* Brier Score
+* Actual conversion rate
+
+### Alerts
+
+The system can flag significant production performance degradation for model review.
+
+Retraining is treated as a **review signal**, not an automatic replacement of the production model.
+
+---
+
+## 🧪 Testing
+
+Run:
 
 ```bash
-copy .env.example .env
+pytest -q
 ```
 
-For Docker networking, configure the dashboard API URL as:
+Tests cover areas including:
 
-```text
-API_URL=http://api:8000
-```
+* API health
+* Model artifact loading
+* Feature leakage prevention
+* Campaign capacity
+* Monitoring logic
+* Retraining conditions
 
-### Build
+---
+
+## 🐳 Run with Docker
+
+Build and start the complete system:
 
 ```bash
-docker compose build
-```
-
-### Start
-
-```bash
-docker compose up
-```
-
-### Services
-
-API:
-
-```text
-http://localhost:8000
-```
-
-API documentation:
-
-```text
-http://localhost:8000/docs
+docker compose up --build
 ```
 
 Dashboard:
@@ -490,194 +464,160 @@ Dashboard:
 http://localhost:8501
 ```
 
-### Stop
+API:
+
+```text
+http://localhost:8000
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+Stop:
 
 ```bash
 docker compose down
 ```
 
-### Rebuild
+---
 
-Use this when dependencies or application code affecting the image have changed:
+## 💻 Run Locally
+
+Create a virtual environment:
 
 ```bash
-docker compose up --build
+python -m venv .venv
 ```
 
----
+Activate on Windows:
 
-## Deployment
-
-The application is containerized into separate backend and dashboard services.
-
-```text
-User
-  ↓
-Streamlit Dashboard
-  ↓
-FastAPI
-  ↓
-ML Model
-  ↓
-Prediction / Optimization
-  ↓
-Monitoring
+```powershell
+.\.venv\Scripts\Activate.ps1
 ```
 
-The same Docker configuration can be used for local development and cloud deployment by changing environment variables.
-
-### Production configuration
-
-The dashboard requires an API URL:
-
-```text
-API_URL=https://<api-domain>
-```
-
-The API service loads the versioned model artifact and exposes prediction, optimization, and monitoring endpoints.
-
-### Deployment requirements
-
-The deployment environment must provide:
-
-* Python/Docker runtime
-* Model artifact
-* Processed feature configuration
-* Environment variables
-* Persistent storage for monitoring data if production logging is enabled
-
-For a production banking application, monitoring data should be stored in a managed database or object store rather than local container storage.
-
-The portfolio deployment is intended as a demonstration of the architecture and should not be treated as a production banking system.
-
----
-
-## Campaign Strategy Experiment
-
-The system compares multiple targeting policies under the same campaign constraints.
-
-Strategies evaluated:
-
-* Random targeting
-* Highest conversion probability
-* Expected-profit targeting
-* Fatigue-aware targeting
-
-All strategies are evaluated on the same held-out dataset using the same campaign budget and contact cost.
-
-### Evaluation Metrics
-
-* Number of contacts
-* Actual conversions
-* Conversion rate
-* Revenue
-* Campaign cost
-* Profit
-* ROI
-
-### Why This Experiment Matters
-
-A high-probability customer is not necessarily the highest-value customer.
-
-The experiment therefore evaluates the complete decision problem rather than measuring only the ML model's predictive performance.
-
-Results are generated directly from the held-out evaluation data and are not manually specified.
-
----
-
-## Testing
-
-Run:
+Install dependencies:
 
 ```bash
-pytest -v
+pip install -r requirements.txt
 ```
 
-Tests cover:
+Train the model:
 
-* API health
-* API readiness
-* Model information
-* Prediction behavior
-* Monitoring
-* Drift detection
+```bash
+python -m src.models.train_model
+```
 
----
+Run the API:
 
-## Key Engineering Decisions
+```bash
+uvicorn app.api.main:app --reload
+```
 
-### Why XGBoost?
+Run Streamlit in another terminal:
 
-The dataset contains mixed numerical and categorical-derived features and nonlinear relationships. Gradient-boosted trees provide a strong baseline for tabular classification while supporting feature importance and probability-based prediction.
-
-### Why separate prediction from decision-making?
-
-A probability model answers:
-
-> How likely is conversion?
-
-The decision engine answers:
-
-> What should we do with that probability?
-
-Separating these layers makes the system easier to test, modify, and explain.
-
-### Why exclude `duration`?
-
-Because it is only known after the interaction. Including it in pre-contact targeting would leak information from the future.
-
-### Why monitor drift?
-
-A model can degrade when the population, campaign strategy, or customer behavior changes. Monitoring provides an early signal for investigation.
+```bash
+streamlit run app/app.py
+```
 
 ---
 
-## Limitations
+## 📦 Dataset
 
-This project has several deliberate limitations:
+The project uses the **Bank Marketing dataset** from the UCI Machine Learning Repository.
 
-* The dataset is historical and public.
-* The dataset is not randomized.
-* The targeting policy is not a causal uplift model.
-* Campaign economics use configurable assumptions.
-* Production performance requires real post-campaign outcomes.
-* Drift detection indicates distribution changes but does not automatically establish business impact.
+The original raw dataset is not committed to this repository.
+
+Follow the instructions in:
+
+```text
+data/raw/README.md
+```
+
+before running the training pipeline.
 
 ---
 
-## Future Improvements
+## ⚠️ Limitations
 
-Potential extensions include:
+### Historical Data
 
-* Randomized campaign experiments
-* True uplift modeling
-* Treatment-effect estimation
-* Feature store integration
-* MLflow model registry
-* Automated CI/CD
+The model is trained on historical campaign data and may not represent a current organization's customer population.
+
+### Prediction ≠ Causation
+
+The model estimates conversion probability.
+
+It does not estimate:
+
+```text
+"What would happen if we contacted this customer
+versus if we did not contact them?"
+```
+
+Answering that question requires randomized treatment/control data or an appropriate causal inference design.
+
+### Campaign Simulation
+
+The strategy comparison uses historical held-out outcomes and should be interpreted as a simulation rather than proof of future campaign performance.
+
+### Fatigue
+
+The fatigue-aware strategy represents a configurable business policy and should not be interpreted as evidence that repeated contact causes lower conversion.
+
+### Production Monitoring
+
+Reliable production performance metrics require sufficient real prediction and outcome data.
+
+### Responsible Use
+
+Customer-targeting systems should be reviewed for fairness, data quality, business constraints, and applicable policies before real-world deployment.
+
+---
+
+## 🚀 Future Improvements
+
+Potential next steps include:
+
+* Real campaign-history database
+* Randomized treatment/control experimentation
+* Uplift modeling
+* Causal ML
+* Automated feature pipelines
 * Cloud deployment
-* Real-time monitoring
-* Automated model validation
-* Champion/challenger model evaluation
+* Model registry
+* Centralized monitoring
+* Automated data validation
+* Advanced calibration
+* Cost-sensitive optimization
+* Human-in-the-loop campaign approval
 
 ---
 
-## Project Goal
+## 👨💻 Project Focus
 
-The main goal is not simply to maximize classification performance.
-
-The goal is to demonstrate how a machine learning model can be integrated into a complete decision system:
+This project demonstrates practical skills across:
 
 ```text
-Data
-→ ML
-→ Prediction
-→ Economics
-→ Decision
-→ API
-→ Application
-→ Monitoring
-→ Feedback
+Data Engineering
+      ↓
+Machine Learning
+      ↓
+Business Decision Modeling
+      ↓
+Explainable AI
+      ↓
+API Engineering
+      ↓
+Monitoring
+      ↓
+Testing
+      ↓
+Containerization
 ```
 
-This project demonstrates the engineering and analytical thinking required to move from a machine learning experiment toward a deployable ML product.
+The goal was not simply to train a model.
+
+The goal was to build a **complete decision-support system around a machine learning model**.

@@ -1,7 +1,6 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 
 # Virtual environment
 .venv/
@@ -10,7 +9,11 @@ env/
 
 # Environment variables
 .env
-.env.docker
+.env.*
+
+# Keep example environment file
+!.env.example
+!.env.docker.example
 
 # Jupyter
 .ipynb_checkpoints/
@@ -19,21 +22,30 @@ env/
 .vscode/
 .idea/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-
-# Test/cache
+# Testing
 .pytest_cache/
 .coverage
 htmlcov/
 
+# Logs
+*.log
+logs/
+
 # Runtime monitoring data
 data/monitoring/predictions.csv
 data/monitoring/outcomes.csv
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+
+# Local Docker files
+docker-compose.override.yml

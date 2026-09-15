@@ -1,49 +1,31 @@
-import pandas as pd
-
-from src.monitoring.drift import (
-    numeric_drift
+from src.monitoring.retraining import (
+    should_retrain
 )
 
 
-def test_no_drift():
+def test_retraining_not_needed():
 
-    reference = pd.DataFrame({
-        "age": [20, 25, 30, 35, 40]
-    })
+    performance = {
+        "status": "available",
+        "matched_records": 150,
+        "pr_auc": 0.31
+    }
 
-    current = reference.copy()
-
-    result = numeric_drift(
-        reference,
-        current
-    )
-
-    assert not result[
-        "drift_detected"
-    ].any()
+    assert should_retrain(
+        performance,
+        baseline_pr_auc=0.30
+    ) is False
 
 
-def test_drift_detection():
+def test_retraining_needed():
 
-    reference = pd.DataFrame({
-        "age": [
-            20, 21, 22, 23, 24,
-            25, 26, 27, 28, 29
-        ]
-    })
+    performance = {
+        "status": "available",
+        "matched_records": 150,
+        "pr_auc": 0.20
+    }
 
-    current = pd.DataFrame({
-        "age": [
-            50, 51, 52, 53, 54,
-            55, 56, 57, 58, 59
-        ]
-    })
-
-    result = numeric_drift(
-        reference,
-        current
-    )
-
-    assert result[
-        "drift_detected"
-    ].any()
+    assert should_retrain(
+        performance,
+        baseline_pr_auc=0.30
+    ) is True

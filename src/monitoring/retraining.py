@@ -1,18 +1,19 @@
-def retraining_required(
+def should_retrain(
     performance,
     baseline_pr_auc,
-    minimum_records=100
+    minimum_records=100,
 ):
 
     if performance.get(
         "status"
-    ) != "evaluated":
+    ) != "available":
 
         return False
 
-    if performance[
-        "matched_records"
-    ] < minimum_records:
+    if performance.get(
+        "matched_records",
+        0
+    ) < minimum_records:
 
         return False
 
@@ -21,8 +22,8 @@ def retraining_required(
     ]
 
     degradation = (
-        baseline_pr_auc
-        - current_pr_auc
+        baseline_pr_auc -
+        current_pr_auc
     )
 
     return degradation >= 0.05

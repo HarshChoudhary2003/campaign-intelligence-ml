@@ -1,40 +1,33 @@
-def check_prediction_health(
-    summary
+def generate_alerts(
+    performance,
+    baseline_pr_auc=None
 ):
 
     alerts = []
 
-    mean_probability = (
-        summary["mean_probability"]
+    if performance.get(
+        "status"
+    ) != "available":
+
+        return alerts
+
+    current_pr_auc = performance.get(
+        "pr_auc"
     )
 
-    high_probability_rate = (
-        summary["high_probability_rate"]
-    )
+    if (
+        baseline_pr_auc is not None
+        and
+        current_pr_auc <
+        baseline_pr_auc - 0.05
+    ):
 
-    if mean_probability is not None:
-
-        if mean_probability < 0.05:
-
-            alerts.append(
-                "Average prediction probability "
-                "is unusually low."
-            )
-
-        elif mean_probability > 0.80:
-
-            alerts.append(
-                "Average prediction probability "
-                "is unusually high."
-            )
-
-    if high_probability_rate is not None:
-
-        if high_probability_rate > 0.90:
-
-            alerts.append(
-                "Unusually large percentage of "
-                "customers have high predicted probability."
-            )
+        alerts.append({
+            "severity": "HIGH",
+            "type": "MODEL_DEGRADATION",
+            "message":
+                "Production PR-AUC has degraded "
+                "by at least 0.05 versus baseline."
+        })
 
     return alerts

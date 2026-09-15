@@ -22,9 +22,9 @@ from src.utils.logger import get_logger
 from src.monitoring.drift import run_drift_monitoring
 from src.monitoring.prediction_logger import log_prediction
 from src.monitoring.prediction_monitor import prediction_summary
-from src.monitoring.alerts import check_prediction_health
+from src.monitoring.alerts import generate_alerts
 from src.monitoring.outcome_logger import log_outcome
-from src.monitoring.performance import evaluate_production_model
+from src.monitoring.performance import calculate_performance
 import shap
 from src.explainability.shap_explainer import top_prediction_reasons
 
@@ -164,8 +164,10 @@ def predict(request: PredictionRequest):
         )
         
         log_prediction(
+            prediction_id=f"PRED-{int(time.time()*1000)}",
+            campaign_id="CMP-2026-001",
             customer_id=customer_id,
-            probability=probability,
+            conversion_probability=probability,
             expected_value=expected_value,
             model_version=metadata[
                 "model_version"
@@ -379,37 +381,16 @@ def prediction_monitoring():
     "/monitoring/alerts"
 )
 def monitoring_alerts():
-    log_path = (
-        ROOT
-        / "data"
-        / "monitoring"
-        / "predictions.csv"
+    performance = (
+        calculate_performance()
     )
 
-    if not log_path.exists():
-        return {
-            "status": "no_data",
-            "alerts": []
-        }
-
-    predictions = pd.read_csv(
-        log_path
-    )
-
-    summary = prediction_summary(
-        predictions
-    )
-
-    alerts = check_prediction_health(
-        summary
+    alerts = generate_alerts(
+        performance,
+        baseline_pr_auc=0.30
     )
 
     return {
-        "status": (
-            "warning"
-            if alerts
-            else "healthy"
-        ),
         "alerts": alerts
     }
 
@@ -419,11 +400,10 @@ def record_outcome(
 ):
     try:
         log_outcome(
+            outcome_id=f"OUT-{int(time.time()*1000)}",
+            campaign_id="CMP-2026-001",
             customer_id=request.customer_id,
-            actual_outcome=request.actual_outcome,
-            model_version=metadata[
-                "model_version"
-            ]
+            actual_outcome=request.actual_outcome
         )
 
         return {
@@ -445,7 +425,7 @@ def record_outcome(
 )
 def production_performance():
     try:
-        return evaluate_production_model()
+        return calculate_performance()
 
     except Exception as error:
         raise HTTPException(

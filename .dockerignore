@@ -1,0 +1,12 @@
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.git
+.gitignore
+.env
+.ipynb_checkpoints
+.vscode
+.idea
+*.log

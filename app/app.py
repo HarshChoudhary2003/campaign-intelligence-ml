@@ -241,18 +241,72 @@ st.header(
 )
 
 try:
+    performance = get_production_performance()
+    
+    if performance:
+        if performance.get("status") == "insufficient_data":
+            st.warning(
+                "Production performance is "
+                "not available yet because "
+                "there are not enough matched "
+                "prediction/outcome records."
+            )
+            st.write(performance)
+        else:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric(
+                    "PR-AUC",
+                    f"{performance['pr_auc']:.3f}"
+                )
+            with col2:
+                st.metric(
+                    "ROC-AUC",
+                    f"{performance['roc_auc']:.3f}"
+                )
+            with col3:
+                st.metric(
+                    "Brier Score",
+                    f"{performance['brier_score']:.3f}"
+                )
+            with col4:
+                st.metric(
+                    "Conversion Rate",
+                    f"{performance['actual_conversion_rate']:.1%}"
+                )
+
+except Exception as e:
+    st.error(f"Failed to load production performance: {e}")
+
+try:
+    alerts_response = requests.get(f"{API_URL}/monitoring/alerts").json()
+    alerts = alerts_response.get("alerts", [])
+    
+    if alerts:
+        st.error("⚠️ Model monitoring alerts detected")
+        for alert in alerts:
+            st.warning(
+                f"{alert['severity']}: {alert['message']}"
+            )
+    else:
+        if performance and performance.get("status") != "insufficient_data":
+            st.success("✓ No model degradation alerts")
+
+except Exception as e:
+    st.error(f"Failed to load alerts: {e}")
+
+st.divider()
+
+st.subheader("Data Drift")
+try:
     drift = get_drift_status()
     
     if (
-        drift["numerical_features_with_drift"]
-        == 0
+        drift["numerical_features_with_drift"] == 0
         and
-        drift["categorical_features_with_drift"]
-        == 0
+        drift["categorical_features_with_drift"] == 0
     ):
-        st.success(
-            "No significant feature drift detected."
-        )
+        st.success("No significant feature drift detected.")
     else:
         st.warning(
             "Feature drift detected. "
@@ -260,126 +314,11 @@ try:
         )
 
     m1, m2 = st.columns(2)
-    
-    m1.metric(
-        "Numerical Drift",
-        drift[
-            "numerical_features_with_drift"
-        ]
-    )
-    
-    m2.metric(
-        "Categorical Drift",
-        drift[
-            "categorical_features_with_drift"
-        ]
-    )
+    m1.metric("Numerical Drift", drift["numerical_features_with_drift"])
+    m2.metric("Categorical Drift", drift["categorical_features_with_drift"])
 
-    try:
-        perf = get_production_performance()
-        if perf.get("status") == "evaluated":
-            p1, p2, p3 = st.columns(3)
-            p1.metric("Production PR-AUC", f"{perf['pr_auc']:.2f}")
-            p2.metric("Production ROC-AUC", f"{perf['roc_auc']:.2f}")
-            p3.metric("Brier Score", f"{perf['brier_score']:.2f}")
-        elif perf.get("status") == "insufficient_data":
-            st.info(f"Collecting outcomes for evaluation... ({perf.get('matched_records', 0)} matches)")
-    except Exception as e:
-        pass
 except Exception as e:
     st.error(f"Failed to load drift status: {e}")
-
-
-# --------------------------------------------------
-# PREDICTION MONITORING
-# --------------------------------------------------
-st.divider()
-
-st.subheader(
-    "Prediction Monitoring"
-)
-
-try:
-    prediction_health = (
-        get_prediction_monitoring()
-    )
-
-    m1, m2, m3 = st.columns(3)
-
-    m1.metric(
-        "Predictions Logged",
-        prediction_health["count"]
-    )
-
-    m2.metric(
-        "Mean Probability",
-        (
-            f'{prediction_health["mean_probability"]:.1%}'
-            if prediction_health["mean_probability"]
-            is not None
-            else "N/A"
-        )
-    )
-
-    m3.metric(
-        "High-Probability Rate",
-        (
-            f'{prediction_health["high_probability_rate"]:.1%}'
-            if prediction_health["high_probability_rate"]
-            is not None
-            else "N/A"
-        )
-    )
-
-    try:
-        prediction_log = pd.read_csv(
-            ROOT / "data" / "monitoring" / "predictions.csv"
-        )
-        if not prediction_log.empty:
-            fig, ax = plt.subplots(
-                figsize=(8, 4)
-            )
-
-            ax.hist(
-                prediction_log[
-                    "conversion_probability"
-                ],
-                bins=20
-            )
-
-            ax.set_xlabel(
-                "Conversion probability"
-            )
-
-            ax.set_ylabel(
-                "Predictions"
-            )
-
-            ax.set_title(
-                "Production Prediction Distribution"
-            )
-
-            st.pyplot(fig)
-    except Exception:
-        pass
-
-except Exception as e:
-    st.error(f"Failed to load prediction monitoring: {e}")
-
-try:
-    alerts = requests.get(
-        f"{API_URL}/monitoring/alerts"
-    ).json()
-
-    if alerts["status"] == "healthy":
-        st.success(
-            "Model monitoring checks are healthy."
-        )
-    else:
-        for alert in alerts["alerts"]:
-            st.warning(alert)
-except Exception as e:
-    st.error(f"Failed to load alerts: {e}")
 
 
 # --------------------------------------------------
