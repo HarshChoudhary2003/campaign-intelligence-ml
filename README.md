@@ -8,6 +8,18 @@ Campaign Intelligence is an end-to-end machine learning system that predicts cus
 
 The project goes beyond a traditional classification model by combining **machine learning, decision optimization, explainability, API deployment, monitoring, and automated testing**.
 
+## Product Preview
+
+![Campaign Intelligence Dashboard](docs/screenshots/dashboard.png)
+
+### Campaign Strategy Results
+
+![Campaign Profit](docs/screenshots/campaign_profit.png)
+
+### Model Monitoring
+
+![Model Health](docs/screenshots/model_performance.png)
+
 ---
 
 ## 🚀 What It Does
@@ -180,11 +192,11 @@ Metrics include:
 
 | Metric      | Result |
 | ----------- | -----: |
-| ROC-AUC     |    TBD |
-| PR-AUC      |    TBD |
-| Brier Score |    TBD |
-| Precision   |    TBD |
-| Recall      |    TBD |
+| ROC-AUC     | 0.7935 |
+| PR-AUC      | 0.4577 |
+| Brier Score | 0.0812 |
+| Precision   | 0.6548 |
+| Recall      | 0.2618 |
 
 ### Why PR-AUC?
 
@@ -208,10 +220,10 @@ Strategies are compared under the same simulated campaign constraints:
 
 | Strategy            | Contacts | Conversions | Revenue | Cost | Profit | ROI |
 | ------------------- | -------: | ----------: | ------: | ---: | -----: | --: |
-| Random              |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
-| Highest Probability |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
-| Expected Profit     |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
-| Fatigue-Aware       |      TBD |         TBD |     TBD |  TBD |    TBD | TBD |
+| Random              |      250 |          30 |  30,000 | 5,000|  25,000| 5.0 |
+| Highest Probability |      250 |         173 | 173,000 | 5,000| 168,000| 33.6|
+| Expected Profit     |      250 |         173 | 173,000 | 5,000| 168,000| 33.6|
+| Fatigue-Aware       |      250 |         171 | 171,000 | 5,000| 166,000| 33.2|
 
 These results will be populated from the actual held-out experiment.
 
